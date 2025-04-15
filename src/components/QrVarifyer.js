@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import dayjs from 'dayjs';
 import { FaCamera } from 'react-icons/fa';
+import dayjs from 'dayjs';
 import CryptoJS from 'crypto-js';
 import NavBar from './Navbar';
+import QrScanner from 'qr-scanner';
 
 const secretKey = 'k9f$VdL#39qpL@7x!';
 
@@ -30,12 +30,17 @@ const QRVerifier = () => {
 
     if (!record) {
       setFeedback('❌ Invalid User');
+      console.log('No record found for ID:', id); // Debugging line
       return;
     }
 
     const now = dayjs();
-    const entryTime = dayjs(record.entry);
+    const entryTime = dayjs(record.entry); 
     const fifteenMinutesLater = entryTime.add(15, 'minute');
+
+    console.log('Current time:', now.format()); 
+    console.log('Entry time:', entryTime.format()); 
+    console.log('Fifteen minutes after entry time:', fifteenMinutesLater.format()); // Debugging line
 
     if (now.isAfter(entryTime) && now.isBefore(fifteenMinutesLater)) {
       setFeedback(`✅ Access Granted: ${record.name} (${record.id})`);
@@ -51,38 +56,23 @@ const QRVerifier = () => {
       const readerEl = document.getElementById('reader');
 
       if (readerEl && html5QrCodeRef.current === null) {
-        const scanner = new Html5Qrcode('reader');
-        html5QrCodeRef.current = scanner;
+        const scanner = new QrScanner(readerEl, (decodedText) => {
+          if (!scanResult) {
+            const decrypted = decryptData(decodedText.trim());
+
+            if (!decrypted) {
+              setFeedback('❌ Failed to decrypt QR code.');
+              return;
+            }
+
+            const [id, name] = decrypted.split('|');
+            verifyAccess(id);
+            setScanResult(`${id} - ${name}`);
+          }
+        });
 
         try {
-          await scanner.start(
-            { facingMode: 'environment' },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-            },
-            async (decodedText) => {
-              if (!scanResult) {
-                const decrypted = decryptData(decodedText.trim());
-
-                if (!decrypted) {
-                  setFeedback('❌ Failed to decrypt QR code.');
-                  return;
-                }
-
-                const [id, name] = decrypted.split('|');
-                verifyAccess(id);
-                setScanResult(`${id} - ${name}`);
-
-                await scanner.stop();
-                await scanner.clear();
-                html5QrCodeRef.current = null;
-              }
-            },
-            (errorMessage) => {
-              console.warn("Scan error:", errorMessage);
-            }
-          );
+          await scanner.start();
         } catch (err) {
           console.error("Failed to start scanner:", err);
         }
@@ -95,13 +85,10 @@ const QRVerifier = () => {
 
     return () => {
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current
-          .stop()
-          .then(() => html5QrCodeRef.current.clear())
-          .then(() => {
-            html5QrCodeRef.current = null;
-          })
-          .catch((err) => console.error('Error during scanner cleanup:', err));
+        html5QrCodeRef.current.stop().then(() => {
+          html5QrCodeRef.current.clear();
+          html5QrCodeRef.current = null;
+        }).catch((err) => console.error('Error during scanner cleanup:', err));
       }
     };
   }, [scannerVisible]);
