@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import dayjs from 'dayjs';
 import { FaCamera } from 'react-icons/fa';
-import NavBar from './Navbar';
 import CryptoJS from 'crypto-js';
+import NavBar from './Navbar';
 
 const secretKey = 'k9f$VdL#39qpL@7x!';
 
@@ -46,67 +46,82 @@ const QRVerifier = () => {
     }
   };
 
-  const startScanner = async () => {
-    if (!html5QrCodeRef.current) {
-      html5QrCodeRef.current = new Html5Qrcode("reader");
-    }
+  useEffect(() => {
+    const startScanner = async () => {
+      const readerEl = document.getElementById('reader');
 
-    try {
-      await html5QrCodeRef.current.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          if (!scanResult) {
-            const decrypted = decryptData(decodedText.trim());
+      if (readerEl && html5QrCodeRef.current === null) {
+        const scanner = new Html5Qrcode('reader');
+        html5QrCodeRef.current = scanner;
 
-            if (!decrypted) {
-              setFeedback('❌ Failed to decrypt QR code.');
-              return;
+        try {
+          await scanner.start(
+            { facingMode: 'environment' },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            async (decodedText) => {
+              if (!scanResult) {
+                const decrypted = decryptData(decodedText.trim());
+
+                if (!decrypted) {
+                  setFeedback('❌ Failed to decrypt QR code.');
+                  return;
+                }
+
+                const [id, name] = decrypted.split('|');
+                verifyAccess(id);
+                setScanResult(id);
+                setFeedback(`✅ Scanned ID: ${id} - ${name}`);
+
+                await scanner.stop();
+                await scanner.clear();
+                html5QrCodeRef.current = null;
+              }
+            },
+            (errorMessage) => {
+              console.warn("Scan error:", errorMessage);
             }
-
-            const [id, name] = decrypted.split('|');
-            setScanResult(id);
-            verifyAccess(id);
-            setFeedback(`✅ Scanned ID: ${id} - ${name}`);
-
-            html5QrCodeRef.current.stop().then(() => {
-              console.log('Scanner stopped');
-            }).catch((err) => console.error('Stop failed', err));
-          }
-        },
-        (error) => {
-          // Scanning error (can be ignored or logged)
+          );
+        } catch (err) {
+          console.error("Failed to start scanner:", err);
         }
-      );
-    } catch (err) {
-      console.error('Camera start failed', err);
-      setFeedback('❌ Unable to access camera');
-    }
-  };
+      }
+    };
 
-  const stopScanner = () => {
-    if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop().then(() => {
-        html5QrCodeRef.current.clear();
-        console.log('Scanner stopped and cleared');
-      }).catch((err) => {
-        console.error('Failed to stop scanner', err);
-      });
+    if (scannerVisible) {
+      startScanner();
     }
-  };
 
-  const toggleScanner = () => {
+    return () => {
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current
+          .stop()
+          .then(() => html5QrCodeRef.current.clear())
+          .then(() => {
+            html5QrCodeRef.current = null;
+          })
+          .catch((err) => console.error('Error during scanner cleanup:', err));
+      }
+    };
+  }, [scannerVisible]);
+
+  const toggleScanner = async () => {
     setScanResult(null);
     setFeedback('');
-    setScannerVisible((prev) => {
-      const newState = !prev;
-      if (newState) startScanner();
-      else stopScanner();
-      return newState;
-    });
+
+    if (scannerVisible && html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        await html5QrCodeRef.current.clear();
+        html5QrCodeRef.current = null;
+      } catch (err) {
+        console.error("Error stopping scanner:", err);
+      }
+    }
+
+    setScannerVisible((prev) => !prev);
   };
 
   return (
