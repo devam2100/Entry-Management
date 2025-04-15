@@ -1,30 +1,13 @@
-import React, { useState } from 'react';
-import { QrReader } from 'react-qr-reader';
+import React, { useEffect, useState } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import dayjs from 'dayjs';
-import { FaCamera } from 'react-icons/fa'; // Import icon
+import { FaCamera } from 'react-icons/fa';
 import NavBar from './Navbar';
 
 const QRVerifier = () => {
   const [scanResult, setScanResult] = useState(null);
   const [feedback, setFeedback] = useState('');
-  const [scanned, setScanned] = useState(false);
-  const [isScannerVisible, setIsScannerVisible] = useState(false); // State to control scanner visibility
-
-  const handleScan = (result, error) => {
-    if (result?.text && !scanned) {
-      const scannedId = result.text.trim();
-      setScanResult(scannedId);
-      verifyAccess(scannedId);
-      setScanned(true);
-
-      // Prevent multiple scans for 3 seconds
-      setTimeout(() => setScanned(false), 3000);
-    }
-
-    if (error && error.name !== 'NotFoundException') {
-      console.error('QR Decode Error:', error.message || error);
-    }
-  };
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   const verifyAccess = (id) => {
     const validEntries = JSON.parse(localStorage.getItem('validEntries')) || [];
@@ -46,46 +29,66 @@ const QRVerifier = () => {
     }
   };
 
+  useEffect(() => {
+    if (scannerVisible) {
+      const scanner = new Html5QrcodeScanner('reader', {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+      });
+
+      scanner.render(
+        (decodedText) => {
+          if (!scanResult) {
+            const scannedId = decodedText.trim();
+            setScanResult(scannedId);
+            verifyAccess(scannedId);
+            scanner.clear(); // stop scanning after first scan
+          }
+        },
+        (error) => {
+          console.warn('QR scan error:', error);
+        }
+      );
+
+      return () => {
+        Html5QrcodeScanner.clear().catch(err => console.error('Failed to clear html5-qrcode', err));
+      };
+    }
+  }, [scannerVisible]);
+
   const toggleScanner = () => {
-    setIsScannerVisible(!isScannerVisible); // Toggle the scanner visibility
+    setScanResult(null);
+    setFeedback('');
+    setScannerVisible(!scannerVisible);
   };
 
   return (
     <>
-    <NavBar></NavBar>
-    <div style={styles.container}>
-      <h2 style={styles.title}>Admin Panel - QR Verification</h2>
+      <NavBar />
+      <div style={styles.container}>
+        <h2 style={styles.title}>Admin Panel - QR Verification</h2>
 
-      {/* Button with Camera Icon to toggle scanner */}
-      <button onClick={toggleScanner} style={styles.toggleButton}>
-        <FaCamera style={styles.icon} /> Scan QR
-      </button>
+        <button onClick={toggleScanner} style={styles.toggleButton}>
+          <FaCamera style={styles.icon} /> {scannerVisible ? 'Stop Scanner' : 'Scan QR'}
+        </button>
 
-      {/* QR Scanner */}
-      {isScannerVisible && (
-        <div style={styles.scannerBox}>
-          <QrReader
-            onResult={handleScan}
-            constraints={{ facingMode: 'environment' }}
-            containerStyle={{ width: '100%' }}
-          />
-        </div>
-      )}
+        {scannerVisible && (
+          <div id="reader" style={styles.scannerBox}></div>
+        )}
 
-      {scanResult && (
-        <div style={styles.resultBox}>
-          <p><strong>Scanned ID:</strong> {scanResult}</p>
-          <p>{feedback}</p>
-        </div>
-      )}
-    </div>
+        {scanResult && (
+          <div style={styles.resultBox}>
+            <p><strong>Scanned ID:</strong> {scanResult}</p>
+            <p>{feedback}</p>
+          </div>
+        )}
+      </div>
     </>
   );
 };
 
 export default QRVerifier;
 
-// Inline styles
 const styles = {
   container: {
     padding: '24px',
@@ -116,9 +119,9 @@ const styles = {
     fontSize: '20px',
   },
   scannerBox: {
-    border: '2px solid #ccc',
-    borderRadius: '8px',
-    overflow: 'hidden',
+    width: '100%',
+    maxWidth: '300px',
+    margin: 'auto',
     marginBottom: '24px',
   },
   resultBox: {
