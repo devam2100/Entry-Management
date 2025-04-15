@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import QrScanner from 'qr-scanner';
+import { Html5Qrcode } from 'html5-qrcode';
 import dayjs from 'dayjs';
 import { FaCamera } from 'react-icons/fa';
 import CryptoJS from 'crypto-js';
@@ -13,7 +13,7 @@ const decryptData = (cipherText) => {
     const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
     return decryptedText;
   } catch (err) {
-    console.error('Decryption failed:', err);
+    console.error("Decryption failed:", err);
     return null;
   }
 };
@@ -22,8 +22,7 @@ const QRVerifier = () => {
   const [scanResult, setScanResult] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
-  const videoRef = useRef(null);
-  const scannerRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
 
   const verifyAccess = (id) => {
     const validEntries = JSON.parse(localStorage.getItem('validEntries')) || [];
@@ -48,39 +47,78 @@ const QRVerifier = () => {
   };
 
   useEffect(() => {
-    if (scannerVisible) {
-      // Initialize scanner and start video stream
-      const scanner = new QrScanner(videoRef.current, (result) => {
-        const decrypted = decryptData(result.data.trim());
+    const startScanner = async () => {
+      const readerEl = document.getElementById('reader');
 
-        if (!decrypted) {
-          setFeedback('❌ Failed to decrypt QR code.');
-          return;
+      if (readerEl && html5QrCodeRef.current === null) {
+        const scanner = new Html5Qrcode('reader');
+        html5QrCodeRef.current = scanner;
+
+        try {
+          await scanner.start(
+            { facingMode: 'environment' },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            async (decodedText) => {
+              if (!scanResult) {
+                const decrypted = decryptData(decodedText.trim());
+
+                if (!decrypted) {
+                  setFeedback('❌ Failed to decrypt QR code.');
+                  return;
+                }
+
+                const [id, name] = decrypted.split('|');
+                verifyAccess(id);
+                setScanResult(`${id} - ${name}`);
+
+                await scanner.stop();
+                await scanner.clear();
+                html5QrCodeRef.current = null;
+              }
+            },
+            (errorMessage) => {
+              console.warn("Scan error:", errorMessage);
+            }
+          );
+        } catch (err) {
+          console.error("Failed to start scanner:", err);
         }
+      }
+    };
 
-        const [id, name] = decrypted.split('|');
-        verifyAccess(id);
-        setScanResult(`${id} - ${name}`);
-        scanner.stop(); // Stop scanner after a successful scan
-      });
-
-      scannerRef.current = scanner;
-      scanner.start().catch((err) => {
-        console.error('Scanner initialization failed:', err);
-      });
+    if (scannerVisible) {
+      startScanner();
     }
 
-    // Cleanup on unmount or when scanner is hidden
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop();
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current
+          .stop()
+          .then(() => html5QrCodeRef.current.clear())
+          .then(() => {
+            html5QrCodeRef.current = null;
+          })
+          .catch((err) => console.error('Error during scanner cleanup:', err));
       }
     };
   }, [scannerVisible]);
 
-  const toggleScanner = () => {
+  const toggleScanner = async () => {
     setScanResult(null);
     setFeedback('');
+
+    if (scannerVisible && html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        await html5QrCodeRef.current.clear();
+        html5QrCodeRef.current = null;
+      } catch (err) {
+        console.error("Error stopping scanner:", err);
+      }
+    }
 
     setScannerVisible((prev) => !prev);
   };
@@ -97,25 +135,12 @@ const QRVerifier = () => {
             {scannerVisible ? 'Stop Scanner' : 'Start Scan'}
           </button>
 
-          {scannerVisible && (
-            <div>
-              <video
-                ref={videoRef}
-                style={styles.scanner}
-                width="100%"
-                height="auto"
-                autoPlay
-                muted
-              />
-            </div>
-          )}
+          {scannerVisible && <div id="reader" style={styles.scanner}></div>}
 
           {scanResult && (
             <div style={styles.resultBox}>
               <h4 style={styles.resultTitle}>🔍 Scan Result</h4>
-              <p>
-                <strong>ID:</strong> {scanResult}
-              </p>
+              <p><strong>ID:</strong> {scanResult}</p>
               <p>{feedback}</p>
             </div>
           )}
