@@ -3,17 +3,15 @@ import Papa from 'papaparse';
 import { QRCode } from 'react-qrcode-logo';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import CryptoJS from 'crypto-js'; 
+import CryptoJS from 'crypto-js';
 import './QRUploader.css';
 import NavBar from './Navbar';
 
-const secretKey = 'k9f$VdL#39qpL@7x!'; 
+const secretKey = 'k9f$VdL#39qpL@7x!';
 
 const encryptData = (data) => {
-
   return CryptoJS.AES.encrypt(data, secretKey).toString();
 };
-
 
 const QRUploader = () => {
   const [validEntries, setValidEntries] = useState([]);
@@ -31,6 +29,11 @@ const QRUploader = () => {
 
     if (savedFileName) {
       setUploadedFileName(savedFileName);
+    }
+
+    // Restore file input state
+    if (savedFileName && fileInputRef.current) {
+      fileInputRef.current.disabled = true;
     }
   }, []);
 
@@ -55,6 +58,10 @@ const QRUploader = () => {
 
     setUploadedFileName(file.name);
     localStorage.setItem('uploadedFileName', file.name);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.disabled = true;
+    }
 
     Papa.parse(file, {
       header: true,
@@ -90,8 +97,6 @@ const QRUploader = () => {
         localStorage.setItem('invalidEntries', JSON.stringify(invalid));
 
         setValidEntries(valid);
-
-        
       },
     });
   };
@@ -115,6 +120,7 @@ const QRUploader = () => {
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+      fileInputRef.current.disabled = false;
     }
 
     navigate('/');
@@ -133,11 +139,15 @@ const QRUploader = () => {
               onChange={handleFileUpload}
               className="file-input"
               ref={fileInputRef}
+              disabled={uploadedFileName !== ''}
             />
             {uploadedFileName && (
-              <button onClick={handleRemoveFile} className="remove-button">
-                Remove File
-              </button>
+              <div className="file-details">
+                {/* <p className="file-name">Uploaded: {uploadedFileName}</p> */}
+                <button onClick={handleRemoveFile} className="remove-button">
+                  Remove File
+                </button>
+              </div>
             )}
           </div>
 
@@ -148,7 +158,7 @@ const QRUploader = () => {
                 {validEntries.map((entry) => (
                   <div key={entry.id} className="qr-card" id={`qr-${entry.id}`}>
                     <QRCode
-                      value={encryptData(`${entry.id}|${entry.name}|${entry.entry}|${entry.exit}`)} 
+                      value={encryptData(`${entry.id}|${entry.name}|${entry.entry}|${entry.exit}`)}
                       size={150}
                     />
                     <div className="qr-info">

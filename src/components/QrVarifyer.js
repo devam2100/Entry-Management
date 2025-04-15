@@ -27,7 +27,7 @@ const QRVerifier = () => {
   const verifyAccess = (id) => {
     const validEntries = JSON.parse(localStorage.getItem('validEntries')) || [];
     const record = validEntries.find((entry) => entry.id === id);
-
+  
     if (!record) {
       setFeedback('❌ Invalid User');
       return;
@@ -35,15 +35,17 @@ const QRVerifier = () => {
 
     const now = dayjs();
     const entryTime = dayjs(record.entry);
-    const exitTime = dayjs(record.exit);
-
-    if (now.isAfter(entryTime) && now.isBefore(exitTime)) {
+    const fifteenMinutesLater = entryTime.add(15, 'minute');
+  
+    if (now.isAfter(entryTime) && now.isBefore(fifteenMinutesLater)) {
       setFeedback(`✅ Access Granted: ${record.name} (${record.id})`);
+    } else if (now.isBefore(entryTime)) {
+      setFeedback('⏳ Too Early: Please wait until your time slot starts.');
     } else {
-      setFeedback('❌ Access Denied: Outside allowed time');
+      setFeedback('❌ Access Denied: You are late, time slot expired.');
     }
   };
-
+  
   useEffect(() => {
     if (scannerVisible) {
       const scanner = new Html5QrcodeScanner('reader', {

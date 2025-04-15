@@ -1,4 +1,4 @@
-/* Container setup */
+
 .qr-container {
     min-height: 100vh;
     background-color: #f3f4f6;
@@ -20,6 +20,7 @@
     font-weight: bold;
     margin-bottom: 16px;
     color: #2d3748;
+    text-align: center;
   }
   
   .qr-subtitle {
@@ -27,6 +28,7 @@
     font-weight: 600;
     margin-bottom: 16px;
     color: #4a5568;
+    text-align: center;
   }
   
   /* File input and button */
@@ -35,11 +37,25 @@
     flex-direction: column;
     gap: 12px;
     margin-bottom: 24px;
+    align-items: flex-start;
   }
   
   .file-input {
-    padding: 8px;
+    padding: 10px;
     font-size: 14px;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+  }
+  
+  .file-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .file-name {
+    font-size: 14px;
+    color: #4a5568;
   }
   
   .remove-button {
@@ -59,33 +75,8 @@
   /* QR Grid */
   .qr-grid {
     display: grid;
+    grid-template-columns: 1fr;
     gap: 24px;
-  }
-  
-  /* Responsive Grid Layout */
-  @media (min-width: 600px) {
-    .file-actions {
-      flex-direction: row;
-      align-items: center;
-    }
-  
-    .qr-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  
-  @media (min-width: 900px) {
-    .qr-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  
-    .qr-title {
-      font-size: 26px;
-    }
-  
-    .qr-subtitle {
-      font-size: 20px;
-    }
   }
   
   /* QR Card */
@@ -126,5 +117,48 @@
   
   .download-button:hover {
     background-color: #2b6cb0;
+  }
+  
+  /* Tablet breakpoint */
+  @media (min-width: 600px) {
+    .file-actions {
+      flex-direction: row;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  
+    .file-details {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+  
+    .qr-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  
+    .qr-title {
+      font-size: 24px;
+    }
+  
+    .qr-subtitle {
+      font-size: 18px;
+    }
+  }
+  
+  /* Desktop breakpoint */
+  @media (min-width: 900px) {
+    .qr-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  
+    .qr-title {
+      font-size: 28px;
+    }
+  
+    .qr-subtitle {
+      font-size: 20px;
+    }
   }
   
