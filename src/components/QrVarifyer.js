@@ -65,7 +65,6 @@ const QRVerifier = () => {
       });
 
       scannerRef.current = scanner;
-
       scanner.start().catch((err) => {
         console.error('Scanner initialization failed:', err);
       });
