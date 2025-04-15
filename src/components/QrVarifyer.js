@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import React, { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import dayjs from 'dayjs';
 import { FaCamera } from 'react-icons/fa';
 import NavBar from './Navbar';
@@ -22,12 +22,12 @@ const QRVerifier = () => {
   const [scanResult, setScanResult] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
-  const [scannerInstance, setScannerInstance] = useState(null);
+  const html5QrCodeRef = useRef(null);
 
   const verifyAccess = (id) => {
     const validEntries = JSON.parse(localStorage.getItem('validEntries')) || [];
     const record = validEntries.find((entry) => entry.id === id);
-  
+
     if (!record) {
       setFeedback('❌ Invalid User');
       return;
@@ -36,7 +36,7 @@ const QRVerifier = () => {
     const now = dayjs();
     const entryTime = dayjs(record.entry);
     const fifteenMinutesLater = entryTime.add(15, 'minute');
-  
+
     if (now.isAfter(entryTime) && now.isBefore(fifteenMinutesLater)) {
       setFeedback(`✅ Access Granted: ${record.name} (${record.id})`);
     } else if (now.isBefore(entryTime)) {
@@ -45,15 +45,19 @@ const QRVerifier = () => {
       setFeedback('❌ Access Denied: You are late, time slot expired.');
     }
   };
-  
-  useEffect(() => {
-    if (scannerVisible) {
-      const scanner = new Html5QrcodeScanner('reader', {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-      });
 
-      scanner.render(
+  const startScanner = async () => {
+    if (!html5QrCodeRef.current) {
+      html5QrCodeRef.current = new Html5Qrcode("reader");
+    }
+
+    try {
+      await html5QrCodeRef.current.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
         (decodedText) => {
           if (!scanResult) {
             const decrypted = decryptData(decodedText.trim());
@@ -64,34 +68,45 @@ const QRVerifier = () => {
             }
 
             const [id, name] = decrypted.split('|');
-            verifyAccess(id);
             setScanResult(id);
+            verifyAccess(id);
             setFeedback(`✅ Scanned ID: ${id} - ${name}`);
 
-            scanner.clear().then(() => {
+            html5QrCodeRef.current.stop().then(() => {
               console.log('Scanner stopped');
-            }).catch((err) => console.error('Clear failed', err));
+            }).catch((err) => console.error('Stop failed', err));
           }
         },
         (error) => {
-          console.warn('QR scan error:', error);
+          // Scanning error (can be ignored or logged)
         }
       );
-
-      setScannerInstance(scanner);
-
-      return () => {
-        scanner.clear().catch((err) =>
-          console.error('Failed to clear html5-qrcode', err)
-        );
-      };
+    } catch (err) {
+      console.error('Camera start failed', err);
+      setFeedback('❌ Unable to access camera');
     }
-  }, [scannerVisible]);
+  };
+
+  const stopScanner = () => {
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.stop().then(() => {
+        html5QrCodeRef.current.clear();
+        console.log('Scanner stopped and cleared');
+      }).catch((err) => {
+        console.error('Failed to stop scanner', err);
+      });
+    }
+  };
 
   const toggleScanner = () => {
     setScanResult(null);
     setFeedback('');
-    setScannerVisible(!scannerVisible);
+    setScannerVisible((prev) => {
+      const newState = !prev;
+      if (newState) startScanner();
+      else stopScanner();
+      return newState;
+    });
   };
 
   return (
