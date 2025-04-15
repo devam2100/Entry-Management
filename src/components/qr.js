@@ -3,6 +3,7 @@ import React from 'react';
 import QRUploader from './QrUploader';
 import QRVerifier from './QrVarifyer';
 import NavBar from './Navbar';
+import QRVerifier2 from './QrVarifyre2';
 function QrApp() {
   return (
     <div className="p-4">
@@ -14,7 +15,7 @@ function QrApp() {
           <QRUploader />
         </div>
         <div>
-          <QRVerifier />
+          <QRVerifier2 />
         </div>
       </div>
     </div>

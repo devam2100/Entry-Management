@@ -1,0 +1,30 @@
+.qr-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+  }
+  
+  .videoWrapper {
+    width: 300px;
+    max-width: 100%;
+    border: 3px solid #3182ce;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  
+  .qrVideo {
+    width: 100%;
+  }
+  
+  .resultBox {
+    padding: 20px;
+    background-color: #e6fffa;
+    border: 1px solid #81e6d9;
+    border-radius: 8px;
+    color: #234e52;
+    max-width: 90%;
+    text-align: center;
+  }
+  
