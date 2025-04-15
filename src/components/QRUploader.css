@@ -1,0 +1,130 @@
+/* Container setup */
+.qr-container {
+    min-height: 100vh;
+    background-color: #f3f4f6;
+    padding: 16px;
+  }
+  
+  .qr-wrapper {
+    max-width: 960px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Title and subtitles */
+  .qr-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: #2d3748;
+  }
+  
+  .qr-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #4a5568;
+  }
+  
+  /* File input and button */
+  .file-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .file-input {
+    padding: 8px;
+    font-size: 14px;
+  }
+  
+  .remove-button {
+    background-color: #e53e3e;
+    color: #fff;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: fit-content;
+  }
+  
+  .remove-button:hover {
+    background-color: #c53030;
+  }
+  
+  /* QR Grid */
+  .qr-grid {
+    display: grid;
+    gap: 24px;
+  }
+  
+  /* Responsive Grid Layout */
+  @media (min-width: 600px) {
+    .file-actions {
+      flex-direction: row;
+      align-items: center;
+    }
+  
+    .qr-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (min-width: 900px) {
+    .qr-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  
+    .qr-title {
+      font-size: 26px;
+    }
+  
+    .qr-subtitle {
+      font-size: 20px;
+    }
+  }
+  
+  /* QR Card */
+  .qr-card {
+    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  /* Text and Info */
+  .qr-info {
+    margin-top: 12px;
+  }
+  
+  .entry-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #2d3748;
+  }
+  
+  .entry-id {
+    font-size: 14px;
+    color: #718096;
+  }
+  
+  /* Download Button */
+  .download-button {
+    margin-top: 8px;
+    background-color: #3182ce;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .download-button:hover {
+    background-color: #2b6cb0;
+  }
+  
