@@ -3,11 +3,26 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import dayjs from 'dayjs';
 import { FaCamera } from 'react-icons/fa';
 import NavBar from './Navbar';
+import CryptoJS from 'crypto-js';
+
+const secretKey = 'k9f$VdL#39qpL@7x!';
+
+const decryptData = (cipherText) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
+    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+    return decryptedText;
+  } catch (err) {
+    console.error("Decryption failed:", err);
+    return null;
+  }
+};
 
 const QRVerifier = () => {
   const [scanResult, setScanResult] = useState(null);
   const [feedback, setFeedback] = useState('');
   const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerInstance, setScannerInstance] = useState(null);
 
   const verifyAccess = (id) => {
     const validEntries = JSON.parse(localStorage.getItem('validEntries')) || [];
@@ -39,10 +54,21 @@ const QRVerifier = () => {
       scanner.render(
         (decodedText) => {
           if (!scanResult) {
-            const scannedId = decodedText.trim();
-            setScanResult(scannedId);
-            verifyAccess(scannedId);
-            scanner.clear(); // stop scanning after first scan
+            const decrypted = decryptData(decodedText.trim());
+
+            if (!decrypted) {
+              setFeedback('❌ Failed to decrypt QR code.');
+              return;
+            }
+
+            const [id, name] = decrypted.split('|');
+            verifyAccess(id);
+            setScanResult(id);
+            setFeedback(`✅ Scanned ID: ${id} - ${name}`);
+
+            scanner.clear().then(() => {
+              console.log('Scanner stopped');
+            }).catch((err) => console.error('Clear failed', err));
           }
         },
         (error) => {
@@ -50,8 +76,12 @@ const QRVerifier = () => {
         }
       );
 
+      setScannerInstance(scanner);
+
       return () => {
-        Html5QrcodeScanner.clear().catch(err => console.error('Failed to clear html5-qrcode', err));
+        scanner.clear().catch((err) =>
+          console.error('Failed to clear html5-qrcode', err)
+        );
       };
     }
   }, [scannerVisible]);
@@ -65,23 +95,25 @@ const QRVerifier = () => {
   return (
     <>
       <NavBar />
-      <div style={styles.container}>
-        <h2 style={styles.title}>Admin Panel - QR Verification</h2>
+      <div style={styles.wrapper}>
+        <div style={styles.card}>
+          <h2 style={styles.title}>🎯 Admin QR Verification</h2>
 
-        <button onClick={toggleScanner} style={styles.toggleButton}>
-          <FaCamera style={styles.icon} /> {scannerVisible ? 'Stop Scanner' : 'Scan QR'}
-        </button>
+          <button onClick={toggleScanner} style={styles.toggleButton}>
+            <FaCamera style={styles.icon} />
+            {scannerVisible ? 'Stop Scanner' : 'Start Scan'}
+          </button>
 
-        {scannerVisible && (
-          <div id="reader" style={styles.scannerBox}></div>
-        )}
+          {scannerVisible && <div id="reader" style={styles.scanner}></div>}
 
-        {scanResult && (
-          <div style={styles.resultBox}>
-            <p><strong>Scanned ID:</strong> {scanResult}</p>
-            <p>{feedback}</p>
-          </div>
-        )}
+          {scanResult && (
+            <div style={styles.resultBox}>
+              <h4 style={styles.resultTitle}>🔍 Scan Result</h4>
+              <p><strong>ID:</strong> {scanResult}</p>
+              <p>{feedback}</p>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
@@ -90,45 +122,61 @@ const QRVerifier = () => {
 export default QRVerifier;
 
 const styles = {
-  container: {
-    padding: '24px',
-    maxWidth: '600px',
-    margin: '0 auto',
+  wrapper: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: '40px 20px',
+    backgroundColor: '#f0f4f8',
+    minHeight: '100vh',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    padding: '30px',
+    borderRadius: '12px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    maxWidth: '500px',
+    width: '100%',
     textAlign: 'center',
-    fontFamily: 'Arial, sans-serif',
   },
   title: {
-    fontSize: '20px',
+    fontSize: '24px',
     fontWeight: 'bold',
-    marginBottom: '16px',
-  },
-  toggleButton: {
-    backgroundColor: '#3182ce',
-    color: 'white',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+    color: '#2c5282',
     marginBottom: '20px',
   },
-  icon: {
-    fontSize: '20px',
-  },
-  scannerBox: {
-    width: '100%',
-    maxWidth: '300px',
-    margin: 'auto',
+  toggleButton: {
+    backgroundColor: '#2b6cb0',
+    color: '#fff',
+    padding: '12px 24px',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '10px',
+    cursor: 'pointer',
+    transition: 'background 0.3s',
     marginBottom: '24px',
   },
+  icon: {
+    fontSize: '18px',
+  },
+  scanner: {
+    width: '100%',
+    maxWidth: '300px',
+    margin: '0 auto 24px',
+  },
   resultBox: {
-    backgroundColor: '#f7fafc',
-    padding: '16px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e0',
-    marginTop: '16px',
+    backgroundColor: '#e6fffa',
+    padding: '20px',
+    borderRadius: '10px',
+    border: '1px solid #81e6d9',
+    marginTop: '20px',
+    color: '#234e52',
+  },
+  resultTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    marginBottom: '10px',
   },
 };

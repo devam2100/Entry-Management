@@ -1,37 +1,25 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // For routing, if using React Router
-import { FaHome, FaExclamationCircle, FaCamera } from 'react-icons/fa'; // Icons for Navbar
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { FaHome, FaExclamationCircle, FaCamera } from 'react-icons/fa';
 
 const NavBar = () => {
-  const [activePage, setActivePage] = useState('home'); // State to track active page
-
-  const handleClick = (page) => {
-    setActivePage(page); // Set the active page when clicked
-  };
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   return (
     <div style={styles.navContainer}>
       <ul style={styles.navList}>
-        <li 
-          style={activePage === 'home' ? styles.activeLink : styles.navLink}
-          onClick={() => handleClick('home')}
-        >
+        <li style={currentPath === '/' ? styles.activeLink : styles.navLink}>
           <Link to="/" style={styles.navLinkText}>
             <FaHome style={styles.icon} /> Home
           </Link>
         </li>
-        <li 
-          style={activePage === 'invalidData' ? styles.activeLink : styles.navLink}
-          onClick={() => handleClick('invalidData')}
-        >
+        <li style={currentPath === '/invalid-data' ? styles.activeLink : styles.navLink}>
           <Link to="/invalid-data" style={styles.navLinkText}>
             <FaExclamationCircle style={styles.icon} /> Invalid Data
           </Link>
         </li>
-        <li 
-          style={activePage === 'verify' ? styles.activeLink : styles.navLink}
-          onClick={() => handleClick('verify')}
-        >
+        <li style={currentPath === '/verify' ? styles.activeLink : styles.navLink}>
           <Link to="/verify" style={styles.navLinkText}>
             <FaCamera style={styles.icon} /> Verify QR
           </Link>
@@ -43,7 +31,7 @@ const NavBar = () => {
 
 export default NavBar;
 
-// Inline styles for the NavBar
+// Inline styles with responsiveness
 const styles = {
   navContainer: {
     backgroundColor: '#2b6cb0',
@@ -52,30 +40,28 @@ const styles = {
   },
   navList: {
     display: 'flex',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     listStyleType: 'none',
     margin: 0,
     padding: 0,
+    gap: '10px',
   },
   navLink: {
-    color: 'white',
     padding: '8px 16px',
     cursor: 'pointer',
     fontSize: '16px',
-    display: 'flex',
-    alignItems: 'center',
     textDecoration: 'none',
+    borderRadius: '6px',
+    transition: 'background 0.3s ease',
+    backgroundColor: 'transparent',
   },
   activeLink: {
     backgroundColor: '#3182ce',
     borderRadius: '6px',
-    color: 'white',
     padding: '8px 16px',
     cursor: 'pointer',
     fontSize: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    textDecoration: 'none',
   },
   navLinkText: {
     color: 'white',

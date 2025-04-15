@@ -3,8 +3,17 @@ import Papa from 'papaparse';
 import { QRCode } from 'react-qrcode-logo';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
+import CryptoJS from 'crypto-js'; 
 import './QRUploader.css';
 import NavBar from './Navbar';
+
+const secretKey = 'k9f$VdL#39qpL@7x!'; 
+
+const encryptData = (data) => {
+
+  return CryptoJS.AES.encrypt(data, secretKey).toString();
+};
+
 
 const QRUploader = () => {
   const [validEntries, setValidEntries] = useState([]);
@@ -12,13 +21,16 @@ const QRUploader = () => {
   const fileInputRef = useRef();
   const navigate = useNavigate();
 
-  // Load validEntries and invalidEntries from localStorage on component mount
   useEffect(() => {
     const savedValidEntries = localStorage.getItem('validEntries');
-    const savedInvalidEntries = localStorage.getItem('invalidEntries');
+    const savedFileName = localStorage.getItem('uploadedFileName');
 
     if (savedValidEntries) {
       setValidEntries(JSON.parse(savedValidEntries));
+    }
+
+    if (savedFileName) {
+      setUploadedFileName(savedFileName);
     }
   }, []);
 
@@ -29,6 +41,12 @@ const QRUploader = () => {
       return;
     }
 
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File size exceeds the maximum limit of 5MB.");
+      return;
+    }
+
     const isCSV = file.name.endsWith('.csv') && file.type === 'text/csv';
     if (!isCSV) {
       alert("Invalid file format. Please upload a .csv file.");
@@ -36,6 +54,7 @@ const QRUploader = () => {
     }
 
     setUploadedFileName(file.name);
+    localStorage.setItem('uploadedFileName', file.name);
 
     Papa.parse(file, {
       header: true,
@@ -67,17 +86,12 @@ const QRUploader = () => {
           else invalid.push(row);
         });
 
-        // Save valid and invalid entries to localStorage
         localStorage.setItem('validEntries', JSON.stringify(valid));
         localStorage.setItem('invalidEntries', JSON.stringify(invalid));
 
-        // Update the state with valid entries
         setValidEntries(valid);
 
-        // If there are invalid entries, navigate to the invalid data page
-        if (invalid.length > 0) {
-          navigate('/invalid-data');
-        }
+        
       },
     });
   };
@@ -93,20 +107,16 @@ const QRUploader = () => {
   };
 
   const handleRemoveFile = () => {
-    // Clear valid entries state and uploaded file name
     setValidEntries([]);
     setUploadedFileName('');
-
-    // Remove valid and invalid entries from localStorage
     localStorage.removeItem('validEntries');
     localStorage.removeItem('invalidEntries');
+    localStorage.removeItem('uploadedFileName');
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
 
-    // Navigate to home page or wherever appropriate
     navigate('/');
   };
 
@@ -137,7 +147,10 @@ const QRUploader = () => {
               <div className="qr-grid">
                 {validEntries.map((entry) => (
                   <div key={entry.id} className="qr-card" id={`qr-${entry.id}`}>
-                    <QRCode value={entry.name + '\n' + entry.id + '\n' + entry.entry + '\n' + entry.exit} size={150} />
+                    <QRCode
+                      value={encryptData(`${entry.id}|${entry.name}|${entry.entry}|${entry.exit}`)} 
+                      size={150}
+                    />
                     <div className="qr-info">
                       <p className="entry-name">{entry.name}</p>
                       <p className="entry-id">{entry.id}</p>
