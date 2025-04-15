@@ -72,8 +72,7 @@ const QRVerifier = () => {
 
                 const [id, name] = decrypted.split('|');
                 verifyAccess(id);
-                setScanResult(id);
-                setFeedback(`✅ Scanned ID: ${id} - ${name}`);
+                setScanResult(`${id} - ${name}`);
 
                 await scanner.stop();
                 await scanner.clear();

@@ -31,7 +31,6 @@ const QRUploader = () => {
       setUploadedFileName(savedFileName);
     }
 
-    // Restore file input state
     if (savedFileName && fileInputRef.current) {
       fileInputRef.current.disabled = true;
     }
@@ -50,27 +49,22 @@ const QRUploader = () => {
       return;
     }
 
-    const isCSV = file.name.endsWith('.csv') && file.type === 'text/csv';
+    // Validate file extension manually
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
     if (!isCSV) {
-      alert("Invalid file format. Please upload a .csv file.");
+      alert("Invalid file format. Only .csv files are allowed.");
       return;
-    }
-
-    setUploadedFileName(file.name);
-    localStorage.setItem('uploadedFileName', file.name);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.disabled = true;
     }
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const rows = results.data?.map((row) => ({
-          ...row,
-          qr_name: "Name: " + row.name,
-        }));
+        const rows = results.data;
+        if (!Array.isArray(rows) || rows.length === 0) {
+          alert("CSV is empty or improperly formatted.");
+          return;
+        }
 
         const valid = [];
         const invalid = [];
@@ -93,10 +87,24 @@ const QRUploader = () => {
           else invalid.push(row);
         });
 
-        localStorage.setItem('validEntries', JSON.stringify(valid));
-        localStorage.setItem('invalidEntries', JSON.stringify(invalid));
+        if (valid.length === 0) {
+          alert("CSV contains no valid entries. Please check your file format and values.");
+          return;
+        }
 
         setValidEntries(valid);
+        setUploadedFileName(file.name);
+        localStorage.setItem('validEntries', JSON.stringify(valid));
+        localStorage.setItem('invalidEntries', JSON.stringify(invalid));
+        localStorage.setItem('uploadedFileName', file.name);
+
+        if (fileInputRef.current) {
+          fileInputRef.current.disabled = true;
+        }
+      },
+      error: (err) => {
+        alert("Failed to parse CSV. Please check your file.");
+        console.error(err);
       },
     });
   };
@@ -112,19 +120,23 @@ const QRUploader = () => {
   };
 
   const handleRemoveFile = () => {
+    const confirmDelete = window.confirm("Are you sure you want to remove the uploaded file and generated QR codes?");
+    if (!confirmDelete) return;
+  
     setValidEntries([]);
     setUploadedFileName('');
     localStorage.removeItem('validEntries');
     localStorage.removeItem('invalidEntries');
     localStorage.removeItem('uploadedFileName');
-
+  
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.disabled = false;
     }
-
+  
     navigate('/');
   };
+  
 
   return (
     <>
@@ -143,7 +155,6 @@ const QRUploader = () => {
             />
             {uploadedFileName && (
               <div className="file-details">
-                {/* <p className="file-name">Uploaded: {uploadedFileName}</p> */}
                 <button onClick={handleRemoveFile} className="remove-button">
                   Remove File
                 </button>
